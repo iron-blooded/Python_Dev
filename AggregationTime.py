@@ -30,6 +30,8 @@ class AggregationTime:
             formatted_date = self.format_date(
                 line["dt"], task["group_type"]
             )  # Форматируем дату в соответствии с типом группировки
+            if formatted_date not in dates:
+                dates[formatted_date] = 0
             dates[formatted_date] += line[
                 "value"
             ]  # Прибавляем значение к группированной дате
