@@ -17,7 +17,7 @@ async def send_welcome(message: types.Message):
 async def echo_message(message: types.Message):  # Обработка входящих сообщений
     try:
         return await message.answer(
-            str(AggregationTime().input(json.loads(message.text)))
+            str(AggregationTime().main(json.loads(message.text)))
         )
     except Exception as e:
         return await message.answer(f"Ошибка: {e}")
