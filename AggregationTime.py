@@ -1,5 +1,5 @@
 import bson
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 
 
@@ -7,6 +7,12 @@ class AggregationTime:
     def __init__(self, location="./sampleDB/sample_collection.bson") -> None:
         with open(location, "rb") as f:
             self.dataset = bson.decode_all(f.read())
+            self.groups = {
+                "hour": timedelta(hours=1),
+                "day": timedelta(days=1),
+                "week": timedelta(weeks=1),
+                "month": timedelta(days=33),
+            }
 
     def main(
         self, task: dict[str:str]
@@ -23,15 +29,17 @@ class AggregationTime:
     def aggregations(
         self, task: dict[str : (str | datetime)]
     ) -> dict[str : (list | str)]:  # Агрегация данных
-        dates = defaultdict()  # Создаем массив дат
+        dates = self.create_dict_results(
+            start_date=task["dt_from"],
+            end_date=task["dt_upto"],
+            step=task["group_type"],
+        )  # Формируем массив дат, в который предстоит записывать данные
         for line in self.filter_by_date(
             task["dt_from"], task["dt_upto"]
         ):  # Перебираем отфильтрованные даты
             formatted_date = self.format_date(
                 line["dt"], task["group_type"]
             )  # Форматируем дату в соответствии с типом группировки
-            if formatted_date not in dates:
-                dates[formatted_date] = 0
             dates[formatted_date] += line[
                 "value"
             ]  # Прибавляем значение к группированной дате
@@ -64,3 +72,25 @@ class AggregationTime:
             return dt.strftime("%Y-%m-01T00:00:00")
         else:
             raise ValueError(f"Неподдерживаемый интервал: {interval}")
+
+    def create_dict_results(
+        self, start_date: datetime, end_date: datetime, step: str
+    ) -> dict[str:0]:
+        date = start_date
+        result = defaultdict()
+        while date <= end_date:
+            if step == "hour":
+                date = datetime.fromisoformat(date.strftime("%Y-%m-%dT%H:00:00"))
+            elif step == "day":
+                date = datetime.fromisoformat(date.strftime("%Y-%m-%dT00:00:00"))
+            elif step == "week":
+                date -= timedelta(days=date.weekday())
+                date = datetime.fromisoformat(date.strftime("%Y-%m-%dT00:00:00"))
+            elif step == "month":
+                date -= timedelta(days=(date.day - 1))
+                date = datetime.fromisoformat(date.strftime("%Y-%m-01T00:00:00"))
+            else:
+                raise ValueError("Переменная step не валидна")
+            result[date.strftime("%Y-%m-%dT%H:00:00")] = 0
+            date += self.groups[step]
+        return result
