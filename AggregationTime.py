@@ -1,5 +1,6 @@
 import bson
 from datetime import datetime
+from collections import defaultdict
 
 
 class AggregationTime:
@@ -17,5 +18,15 @@ class AggregationTime:
 
     def aggregations(
         self, task: dict[str : (str | datetime)]
-    ) -> dict[str : (list | str)]: 
+    ) -> dict[str : (list | str)]:
+        dates = defaultdict()
         ...
+
+    def filter_by_date(self, min_date: datetime, max_date: datetime) -> dict[str:str]:
+        filtered_data = []
+
+        for line in self.dataset:
+            entry_date = line["dt"]
+            if min_date <= entry_date <= max_date:
+                filtered_data.append(line)
+        return filtered_data
